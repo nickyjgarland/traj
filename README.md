@@ -1,6 +1,3 @@
 # traj
-R code and data for bibliometric analysis of TRAC publications
+This repository contains the R code and data for a bibliometric analysis of publications from the Theoretical Roman Archaeology Conference organisation
 
-This line was added using RStudio
-
-Testing testing
