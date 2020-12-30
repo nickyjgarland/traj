@@ -54,6 +54,8 @@ trac<-read.csv("trac_database.csv")
 
 ### Table 1: Heading and descriptions of fields in TRAC publication database
 
+This table provides the main headings for the database (as saved within the 'traj' repositry), as well as a short description of each field.
+
 ```{r traj-database-headings, echo=FALSE, results='asis'}
 Headings <- c("authors", "title", "journal", "year_pub", "pages", "journal_issue", "number_authors", "collaborative", "full_reference", "lead_author_institution", "institution_country", "country_topic", "institution_type", "theory_topic", "subject_topic", "method_topic", "type")
 
