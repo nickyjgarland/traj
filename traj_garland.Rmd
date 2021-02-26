@@ -47,7 +47,7 @@ library(viridis)
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r traj-import-data}
-trac<-read.csv("trac_database.csv")
+trac<-read.csv("data/trac_database.csv")
 ```
 
 ## Tables
@@ -509,7 +509,7 @@ ggplot(instit_country_final) +
 
 ```{r traj_britannia_summary_plots, echo=FALSE}
 #import bibtex data from Britannia
-file <- "britannia.bib"
+file <- "data/britannia.bib"
 #convert to df
 brit_df <- convert2df(file, dbsource = "wos", format = "bibtex")
 #BiblioAnalysis
@@ -694,7 +694,7 @@ ggplot(word_frequency1, aes(TRAC, Britannia)) +
 
 ```{r traj_jsa_summary_plots, echo=FALSE}
 #import bibtex data from Journal of Social Archaeology
-file <- "jour_social.bib"
+file <- "data/jour_social.bib"
 #convert to df
 jsa_df <- convert2df(file, dbsource = "wos", format = "bibtex")
 #BiblioAnalysis
@@ -795,6 +795,7 @@ jsa_author_final<-jsa_df_author %>%
 p8<-ggplot(jsa_author_final)+ 
   geom_col(aes(fill=`author_no > 1`, x=factor(year), y=no), position="fill")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, size = 8), axis.text.y = element_text(size = 8))+
+  scale_x_discrete(breaks = c(2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019))+
   scale_y_continuous(labels=scales::percent)+
   labs(x="",y="percentage of articles", fill = "Collaborative?")+
   scale_fill_manual(values = c("#66C2A5", "#F46D43"), labels = c("No", "Yes"))+
