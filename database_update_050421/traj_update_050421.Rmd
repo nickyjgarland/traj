@@ -1,0 +1,506 @@
+---
+title: 'TRAC Publication Update Document'
+author: "Nicky Garland"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document: 
+    toc: yes
+    toc_float: yes
+    self_contained: yes
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = FALSE,
+  cache = FALSE,
+  fig.path = "../figures/"
+)
+```
+
+```{r load_packages}
+library(ggplot2)
+library(dplyr)
+library(bibliometrix)
+library(gridExtra)
+library(gt)
+library(kableExtra)
+library(knitr)
+library(patchwork)
+library(readr)
+library(scales)
+library(stringr)
+library(quanteda)
+library(plyr)
+library(RColorBrewer)
+library(tidytext)
+library(viridis)
+```
+
+# Update document
+
+This document has been compiled to provide an update to table and figures within the paper ''TRAC at 30: A bibliometric analysis of TRAC’s Identity' (Garland 2021). This document utilises an updated version of the TRAC publication database to include all articles published in 2020.
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+The following chunk will need to updated once the database files is updated on an annual basis.
+
+# Import Dataset
+
+```{r traj-import-data}
+setwd("~/traj/database_update_050421")
+trac<-read.csv("trac_database_050421.csv")
+```
+
+## Tables
+
+### Table 1: Heading and descriptions of fields in TRAC publication database
+
+This table provides the main headings for the database (as saved within the 'traj' repositry), as well as a short description of each field.
+
+```{r traj-database-headings, echo=FALSE, results='asis'}
+Headings <- c("authors", "title", "journal", "year_pub", "pages", "journal_issue", "number_authors", "collaborative", "full_reference", "lead_author_institution", "institution_country", "country_topic", "institution_type", "theory_topic", "subject_topic", "method_topic", "type")
+
+Description <- c("Name of article author(s)", "Title of article", "Journal title", "Year of publication", "Page numbers of articles", "Volume number", "Number of authors", "Was the article multi-author?", "Full reference of article", "Institution name of first author of article", "County of lead author institution", "Countries used as case studies", "Type of author institution", "Theory topics used in article", "Subject of article", "Methods used in articles", "Type of article")
+trac_database<-data.frame(Headings, Description)
+kable(trac_database, caption = "TRAC Database headings") %>%
+  kable_styling(latex_options=c("HOLD_position"))
+```
+
+### Table 2: Institution types of publication authors 
+
+```{r}
+#create dataframe of totals for each age group
+trac_instit_type<-data.frame(table(trac$institution_type))
+
+#add field representing percentage of total
+trac_instit_final<-trac_instit_type %>% 
+  arrange(desc(Freq))
+
+#plot table
+trac_instit_final %>% 
+  gt() %>%
+  cols_label(Var1 = "Institution type", Freq = "Article frequency")
+```
+
+
+### Table 3: Ten largest contributing author institutions for all TRAC publications
+
+```{r traj-top-ten-author-institution}
+#create table of order descending author institutions
+trac_institutions_final<-ddply(trac, .(trac$lead_author_institution), nrow) %>% 
+  arrange(desc(V1)) %>% 
+  slice_head(n=10)
+
+#rename columns
+names(trac_institutions_final) <- c("author_institution", "count")
+
+#plot table
+trac_institutions_final %>% 
+  gt() %>%
+  cols_label(author_institution = "Institution", count = "Article frequency")
+```
+
+### Table 4: Ten most frequent institution that have hosted a TRAC Conference
+
+```{r traj_trac_conference_locations}
+Location <- c("Newcastle-upon-Tyne, UK", "Bradford, UK", "Glasgow, UK", "Durham, UK", "Reading, UK", "Sheffield, UK", "Nottingham, UK", "Leicester, UK", "London, UK", "Glasgow, UK", "Canterbury, UK", "Birmingham, UK", "Cambridge, UK", "Amsterdam, Netherlands", "Ann Arbor, USA" ,"Southampton, UK", "Oxford, UK", "Frankfurt am Main, Germany", "Rome, Italy", "Edinburgh, UK")
+No_conferences <- c(2, 1, 2, 4, 2, 1, 1, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+trac_conference<-data.frame(Location, No_conferences)
+
+#arrange by descending values
+trac_confernce_final <- trac_conference %>% arrange(desc(No_conferences)) %>% filter(No_conferences>=2)
+
+#plot table
+trac_confernce_final %>% 
+  gt() %>%
+  cols_label(Location = "Location", No_conferences = "Frequency")
+```
+
+### Table 5: Ten most frequent case study locations utilised in TRAC publications
+
+```{r traj_trac_casestudy_locations_top10}
+trac$country_topic<-as.character(trac$country_topic)
+country_corpus<-corpus(trac, docid_field = "doc_id",text_field = "country_topic")
+country_dfm<-dfm(country_corpus, tolower=TRUE, stem=FALSE, remove=stopwords("English"), remove_punct = TRUE)
+
+#frequency of words
+features_dfm_country <- textstat_frequency(country_dfm)
+
+#convert to dataframe
+country_topic_df<-as.data.frame(features_dfm_country)
+
+#select relevant features and top 10 entries
+country_topic_final <- country_topic_df %>% 
+  select(feature, frequency) %>% 
+  slice_head(n=10)
+
+#plot table
+country_topic_final %>% 
+  gt() %>%
+  cols_label(feature = "Location", frequency = "Article frequency")
+```
+
+### Table 6: Ten most frequent countries represented by author institutions in TRAC publications
+
+```{r traj-top-ten-author-institution-locations}
+#create table of order descending author institutions
+trac_institution_country<-ddply(trac, .(trac$institution_country), nrow) %>% 
+  arrange(desc(V1)) %>% 
+  slice_head(n=10)
+
+#rename columns
+names(trac_institution_country) <- c("author_location", "count")
+
+#plot table
+trac_institution_country %>% 
+  gt() %>%
+  cols_label(author_location = "Location", count = "Article frequency")
+```
+
+## Figures
+
+### Figure 1: Number and type of TRAC publications published per year
+
+```{r traj-publications-per-year}
+#calculate count for article types per year
+#note ddpyr uses plyr package
+trac_pubs_year <- ddply(trac, .(trac$year_pub, trac$journal), nrow)
+#rename columns
+names(trac_pubs_year) <- c("year", "type", "count")
+
+#reorder the factors in the table to change display order of categories
+trac_pubs_year$type <- factor(trac_pubs_year$type, levels = c("Theoretical Roman Archaeology Conference Proceedings", "TRAC Themes in Roman Archaeology","Theoretical Roman Archaeology Journal"))
+
+cols <- c("Theoretical Roman Archaeology Conference Proceedings" = "#66C2A5", "TRAC Themes in Roman Archaeology" = "#3288BD", 
+          "Theoretical Roman Archaeology Journal" = "#F46D43")
+
+#plot data using ggplot function
+ggplot(trac_pubs_year)+ 
+  geom_col(aes(fill=type, x=factor(year), y=count), position="stack")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  labs(x="Publication Year",y="Number of articles", fill = "Publication type")+
+  scale_fill_manual(values = cols, labels = c("TRAC Proceedings", "TRAC Themes", "TRAJ"))+
+  ggsave("figs/fig1.jpeg", dpi = 300)
+```
+
+### Figure 2: Institution types of publication authors (per year)
+
+```{r traj-institution-types-percentage-per-year}
+#calculate count for article types per year
+trac_pubs_instit <- ddply(trac, .(trac$institution_type, trac$year_pub), nrow)
+
+#rename columns
+names(trac_pubs_instit) <- c("institution_type", "year", "count")
+
+#add field representing percentage of total
+trac_pubs_instit2<-group_by(trac_pubs_instit, year) %>% mutate(percent = count/sum(count)*100)
+
+#expand colour scheme
+nb.cols <- 14
+mycolors <- colorRampPalette(brewer.pal(8, "Spectral"))(nb.cols)
+
+#plot stacked bar graph]
+ggplot(trac_pubs_instit2)+
+  geom_col(aes(fill=institution_type, x=factor(year), y=percent), position="fill")+
+  scale_y_continuous(labels=scales::percent)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  labs(x="year", y="pecrentage of total", fill = "Institution type")+
+  scale_fill_manual(values = mycolors)+
+  ggsave("figs/fig2.jpeg", height = 5, width = 7, dpi = 300)
+```
+
+### Figure 3: Percentage of single and multi-author articles within TRAC publications published per year 
+
+```{r traj-single-multiauthor-publications-per-year}
+#calculate count for article types per year
+#note ddpyr uses plyr package
+trac_pubs_multi <- ddply(trac, .(trac$collaborative, trac$year_pub), nrow)
+
+#rename columns
+names(trac_pubs_multi) <- c("collaborative", "year", "count")
+
+#change to percentage values per year
+trac_multi_final<-group_by(trac_pubs_multi, year) %>% mutate(percent = count/sum(count)*100)
+
+#plot data using ggplot function
+ggplot(trac_multi_final) + 
+  geom_col(aes(fill=collaborative, x=factor(year), y=percent), position="fill")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+    scale_y_continuous(labels=scales::percent)+
+  labs(x="Publication Year",y="percentage of articles", fill = "Collaborative?")+
+  scale_fill_manual(values = c("#66C2A5", "#F46D43"), labels = c("No", "Yes"))+
+  ggsave("figs/fig3.jpeg", height = 5, width = 7, dpi = 300)
+```
+
+
+### Figure 4: Word frequency plot for ‘theory’ key words (inset table - five most frequent categories)
+
+```{r traj_theory_topic_frequency}
+#pass theory topic data to dfm
+trac$theory_topic<-as.character(trac$theory_topic)
+theory_corpus<-corpus(trac, docid_field = "doc_id",text_field = "theory_topic")
+theory_dfm<-dfm(theory_corpus, tolower=TRUE, stem=FALSE, remove=stopwords("English"), remove_punct = TRUE)
+
+#frequency of words
+features_dfm_theory <- textstat_frequency(theory_dfm)
+
+# Sort by reverse frequency order
+features_dfm_theory$feature <- with(features_dfm_theory, reorder(feature, -frequency))
+
+#create table - top 5 theory topics
+#convert dfm to dataframe
+theory_top_five<-textstat_frequency(theory_dfm, n=5)
+#extract frequency and feature
+theory_final<-subset(theory_top_five, select = c("feature", "frequency"))
+
+#plot using ggplot
+ggplot(features_dfm_theory, aes(x = feature, y = frequency)) +
+    geom_point() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    labs(x="")+
+    annotation_custom(tableGrob(theory_final, theme = ttheme_default(base_size = 6), rows = NULL), xmin = 88, xmax = 100, ymin = 40, ymax = 45)+
+    ggsave("figs/fig4.jpeg", height=5, width=10, dpi = 300)
+```
+
+### Figure 5: Frequency of ‘theory’ key words used in TRAC publications per year (all terms used more than five times per year are represented)
+
+```{r traj_theory_topic_per_year}
+# Get frequency grouped by year published
+freq_grouped <- textstat_frequency(dfm(theory_corpus), groups = "year_pub")
+
+#subset data - keep all entries with more than 5 instances per year
+freq_grouped_final <- subset(freq_grouped, frequency >= 5)
+
+#expand colour scheme
+nb.cols1 <- 11
+mycolors1 <- colorRampPalette(brewer.pal(8, "Spectral"))(nb.cols1)
+
+#plot theory usages per year
+ggplot(freq_grouped_final, aes(x = group, y= frequency, fill = feature), xlab="Age Group") +
+  geom_bar(stat="identity", position = position_dodge2(width=0.9, preserve = "single"))+
+  scale_y_continuous(breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  labs(x="year", y="count", fill = "Theory")+
+  scale_fill_manual(values = mycolors1)+
+  ggsave("figs/fig5.jpeg", height=5, width=7, dpi = 300)
+```
+
+### Figure 6: Word frequency plot for ‘method’ key words (inset table - five most frequent categories)
+
+```{r traj_method_topic_frequency}
+#pass theory topic data to dfm
+trac$method_topic<-as.character(trac$method_topic)
+method_corpus<-corpus(trac, docid_field = "doc_id",text_field = "method_topic")
+method_dfm<-dfm(method_corpus, tolower=TRUE, stem=FALSE, remove=stopwords("English"), remove_punct = TRUE)
+#determine frequency of words
+features_dfm_method <- textstat_frequency(method_dfm)
+#sort by reverse frequency order
+features_dfm_method$feature <- with(features_dfm_method, reorder(feature, -frequency))
+
+#creating table - top 5 method topics
+#convert dfm to dataframe
+method_top_five<-textstat_frequency(method_dfm, n=5)
+#extract frequency and feature
+method_final<-subset(method_top_five, select = c("feature", "frequency"))
+
+#plot frequency chart and table inset
+ggplot(features_dfm_method, aes(x = feature, y = frequency)) +
+    geom_point() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    labs(x="")+
+    annotation_custom(tableGrob(method_final, theme = ttheme_default(base_size = 6), rows = NULL), xmin = 26, xmax = 28, ymin = 24, ymax = 26)+
+    ggsave("figs/fig6.jpeg", height=5, width=7, dpi = 300)
+```
+
+### Figure 7: Frequency of ‘method’ key words used in publications per year (all terms used more than twice per year are represented)
+
+```{r traj_method_topic_frequency_per_year}
+# Get frequency grouped by year published
+freq_grouped_method <- textstat_frequency(dfm(method_corpus), groups = "year_pub")
+
+#subset data - keep all entries with more than 5 instances per year
+freq_method_final <- subset(freq_grouped_method, frequency >= 2)
+
+#expand colour scheme
+nb.cols2 <- 9
+mycolors2 <- colorRampPalette(brewer.pal(8, "Spectral"))(nb.cols2)
+
+#plot theory usages per year
+ggplot(freq_method_final, aes(x = group, y= frequency, fill = feature), xlab="Age Group") +
+  geom_bar(stat="identity", position = position_dodge2(width=0.9, preserve = "single"))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  labs(x="year", y="count", fill = "Method")+
+  scale_fill_manual(values = mycolors2)+
+  ggsave("figs/fig7.jpeg", height=5, width=7, dpi = 300)
+```
+
+### Figure 8: Word frequency plot for ‘subject’ key words (inset table - five most frequent categories)
+
+```{r traj-subject-topics-top-ten, results='asis'}
+#pass subject topic data to dfm
+trac$subject_topic<-as.character(trac$subject_topic)
+subject_corpus<-corpus(trac, docid_field = "doc_id",text_field = "subject_topic")
+subject_dfm<-dfm(subject_corpus, tolower=TRUE, stem=FALSE, remove=stopwords("English"), remove_punct = TRUE)
+#frequency of words
+features_dfm_subject <- textstat_frequency(subject_dfm)
+# Sort by reverse frequency order
+features_dfm_subject$feature <- with(features_dfm_subject, reorder(feature, -frequency))
+
+#creating table - top 5 subject topics
+#convert dfm to dataframe
+subject_top_five<-textstat_frequency(subject_dfm, n=5)
+#extract frequency and feature
+subject_final<-subset(subject_top_five, select = c("feature", "frequency"))
+
+#plot using ggplot
+ggplot(features_dfm_subject, aes(x = feature, y = frequency)) +
+    geom_point() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    labs(x="")+
+    annotation_custom(tableGrob(subject_final, theme = ttheme_default(base_size = 6), rows = NULL), xmin = 76, xmax = 80, ymin = 42, ymax = 44)+
+    ggsave("figs/fig8.jpeg", height=5, width=10, dpi = 300)
+```
+
+### Figure 9: Frequency of ‘subject’ key words used in publications per year (all terms used more than three times per year are represented)
+
+```{r traj_subject_topic_frequency_per_year}
+# Get frequency grouped by year published
+freq_grouped_subject <- textstat_frequency(dfm(subject_corpus), groups = "year_pub")
+
+#subset data - keep all entries with more than 5 instances per year
+freq_subject_final <- subset(freq_grouped_subject, frequency >= 3)
+
+#expand colour scheme
+nb.cols3 <- 15
+mycolors3 <- colorRampPalette(brewer.pal(8, "Spectral"))(nb.cols3)
+
+#plot theory usages per year
+ggplot(freq_subject_final, aes(x = group, y= frequency, fill = feature), xlab="Age Group") +
+  geom_bar(stat="identity", position = position_dodge2(width=0.9, preserve = "single"))+
+  scale_y_continuous(breaks = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  labs(x="year", y="count", fill = "Subject")+
+  scale_fill_manual(values = mycolors3)+
+  ggsave("figs/fig9.jpeg", height=5, width=7, dpi = 300)
+```
+
+### Figure 10: Density map article case study location
+
+```{r traj-case-study-location-map}
+#subset original database to include only country_topic and year published
+country_year<-trac %>% select(year_pub, country_topic)
+
+#convert to character field
+country_year$country_topic<-as.character(country_year$country_topic)
+
+#create corpus using quanteda
+country_corpus_year<-corpus(country_year, docid_field = "doc_id", text_field = "country_topic")
+
+#create dfm using quanteda - grouped by year published
+country_dfm_year<-dfm(country_corpus_year, tolower=TRUE, stem=FALSE, remove=stopwords("English"), remove_punct = TRUE, groups = "year_pub")
+
+#calculate frequency of words used - grouped by year published
+country_year_final<-textstat_frequency(country_dfm_year, groups = "year_pub")
+
+#import world map
+map.world <- map_data("world")
+  
+#convert to dataframe
+country_study_a<-as.data.frame(country_year_final)
+
+#summarise countrys by count
+country_study<-country_study_a %>%
+  select(feature) %>% 
+  group_by(feature) %>%
+  count()
+
+# recode names to match map
+country_study$feature <- recode(country_study$feature, 'britain' = 'UK', 'algeria' = 'Algeria', 'austria' = 'Austria', 'belgium' = 'Belgium', 'croatia' = 'Croatia', 'cyprus' = 'Cyprus', 'denmark' = 'Denmark', 'egypt' = 'Egypt', 'ethiopia' = 'Ethiopia',  'france' = 'France', 'germany' = 'Germany', 'greece' = 'Greece', 'hungary' = 'Hungary', 'iraq' = 'Iraq', 'ireland' = 'Ireland', 'israel' = 'Israel', 'italy' = 'Italy', 'jordan' = 'Jordan', 'libya' = 'Libya', 
+'macedonia' = 'Macedonia', 'morocco' = 'Morocco', 'netherlands' = 'Netherlands', 'norway' = 'Norway', 'portugal' = 'Portugal', 'romania' = 'Romania', 'spain' = 'Spain', 'sweden' = 'Sweden', 'switzerland' = 'Switzerland', 'syria' = 'Syria', 'tunisia' = 'Tunisia', 'turkey' = 'Turkey', 'usa' = 'USA')
+
+#rename columns
+colnames(country_study) = c("country", "count")
+  
+#left join between country map and world map
+map.world_joined2 <- left_join(map.world, country_study, by = c('region' = 'country'))
+  
+#create joined map data
+map.world_joined3 <- map.world_joined2 %>% mutate(fill_flg = ifelse(is.na(rank),F,T))
+  
+#create plain theme for mapping
+plain <- theme(
+  axis.text = element_blank(),
+  axis.line = element_blank(),
+  axis.ticks = element_blank(),
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.title = element_blank(),
+  panel.background = element_rect(fill = "white"),
+  plot.title = element_text(hjust = 0.5)
+)
+
+#plot map
+ggplot(map.world_joined3, mapping = aes(long, lat, group = group, fill = count)) +
+    geom_polygon()+
+    coord_sf(xlim = c(-20, 55), ylim = c(10, 73))+
+    scale_fill_distiller(palette ="Blues", direction = 1, na.value="gray90") + 
+    theme(legend.position = "bottom")+
+    guides(fill = guide_colorbar(direction = "horizontal", 
+                                 barheight = unit(2, units = "mm"), #height of bar
+                                 barwidth = unit(7.5, units = "cm"), #width of bar
+                                 draw.ulim = F, 
+                                 title.position = 'top', #position of title on bar
+                                 label.position="bottom",
+                                 title.hjust = 0.5, #adjusts position of title to centre
+                                 label.hjust = 0.5))+
+    plain+
+  ggsave("figs/fig10.jpeg", height=5, width=7, dpi = 300)
+```
+
+### Figure 11: Location of case study locations for TRAC articles per year
+
+```{r traj_case_study_location_per_year}
+#recode countries to European Union groupings
+country_year_final$feature<-recode(country_year_final$feature, 'britain' = 'UK', 'romania' = 'Central Europe', 'croatia' = 'Central Europe', 'romania' = 'Central Europe', 'hungary' = 'Central Europe', 'slovenia' = 'Central Europe', 'macedonia' = 'Central Europe', 'ethiopia' = 'East Africa', 'jordan' = 'Middle East', 'syria' = 'Middle East', 'israel' = 'Middle East', 'iraq' = 'Middle East', 'libya' = 'North Africa', 'algeria' = 'North Africa', 'morocco' = 'North Africa', 'egypt' = 'North Africa', 'tunisia' = 'North Africa', 'usa' = 'North America', 'denmark' = 'Northern Europe', 'norway' = 'Northern Europe', 'sweden' = 'Northern Europe', 'greece' = 'Southern Europe', 'italy' = 'Southern Europe', 'turkey' = 'Southern Europe', 'spain' = 'Southern Europe', 'portugal' = 'Southern Europe','cyprus' = 'Southern Europe',  'france' = 'Western Europe', 'germany' = 'Southern Europe', 'switzerland' = 'Southern Europe', 'austria' = 'Southern Europe', 'netherlands' = 'Southern Europe', 'belgium' = 'Southern Europe', 'ireland' = 'Southern Europe') 
+
+#plot stacked bar graph
+ggplot(country_year_final)+
+  geom_col(aes(fill=factor(feature, levels = c("North Africa", "East Africa", "Middle East", "North America", "Central Europe", "Western Europe", "Northern Europe",
+                                               "Southern Europe", "UK")), x=group, y=frequency), position="fill")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+  scale_y_continuous(labels=scales::percent)+
+  labs(x="year", y="pecrentage of total", fill = "Case Study location")+
+  scale_fill_brewer(palette = "Spectral")+
+  ggsave("figs/fig11.jpeg", height=5, width=7, dpi = 300)
+```
+
+### Figure 12: Author institution location per year (UK and rest of World)
+
+```{r traj_author_location_uk/nonuk_per_year}
+fig15<-subset(trac, select =c("institution_country", "year_pub"))
+
+#create new column of UK and non-UK data
+fig15a<-fig15 %>%
+  mutate(instit_country2 = c("Non-UK", "UK")[(institution_country %in% c("England", "Scotland", "Wales"))+1] )
+
+#calculate counts of UK and non_UK per year
+instit_country <- ddply(fig15a, .(fig15a$instit_country2, fig15a$year_pub), nrow)
+
+#rename columns
+names(instit_country) <- c("country", "year", "count")
+
+#change to percentage values per year
+instit_country_final<-group_by(instit_country, year) %>% mutate(percent = count/sum(count)*100)
+
+#plot data using ggplot function
+ggplot(instit_country_final) + 
+  geom_col(aes(fill=country, x=factor(year), y=percent), position="fill")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+    scale_y_continuous(labels=scales::percent)+
+  labs(x="Publication Year",y="percentage of articles", fill = "Author Institution?")+
+  scale_fill_manual(values = c("#66C2A5", "#F46D43"))+
+  ggsave("figs/fig12.jpeg", height=5, width=7, dpi = 300)
+```
