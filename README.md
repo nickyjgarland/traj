@@ -1,5 +1,7 @@
 # TRAC at 30: A Bibliometric Analysis of the TRAC Community
 
+[![DOI](https://zenodo.org/badge/292529800.svg)](https://zenodo.org/badge/latestdoi/292529800)
+
 This repository contains the R code and data for a bibliometric analysis of publications from the Theoretical Roman Archaeology Conference (TRAC) organisation. The data and RMarkdown document compruse the dat analysis for a paper entitled 'TRAC at 30: A Bibliometric Analysis of the TRAC Community'. The abstract of the paper is provided below:
 
 ## Abstract
