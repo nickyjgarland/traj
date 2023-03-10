@@ -8,7 +8,7 @@ This repository contains the R code and data for a bibliometric analysis of publ
 
 *As TRAC approaches another milestone anniversary there is much to celebrate — a successful conference, a large body of publications and a thriving community. Part of this success stems from the unusually introspective and self-critical nature of the organisation. However, despite this tradition, there has been limited data-driven analysis of TRAC’s successes and failures. This paper uses bibliometric data from the corpus of TRAC publications over the last 30 years to analyse whether the organisation has achieved its aims. Alongside data from comparable journals, this research will also determine whether TRAC is ahead or behind the wider academic world. This paper provides insights into how diverse TRAC has become and how we might move forward in future.*
 
-The full journal article, which is available as an Open Access publication, can be found on the TRAJ pages on the Open Library of Humanities platform (link).
+The full journal article, which is available as an Open Access publication, can be found on the TRAJ pages on the Open Library of Humanities platform ([link](https://doi.org/10.16995/traj.4344)).
 
 ## Reproducibility of research 
 
